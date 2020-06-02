@@ -5,6 +5,9 @@ Dim SubKey As String
 Dim SubKey2 As String
 Dim Content As String
 
+Dim finRange As Integer
+
+
 Private Sub Insert_Click()
     Call setInputData
     Call writeSheets
@@ -32,10 +35,10 @@ Private Sub writeSheets()
     
     '項目探索
     Dim row As Integer: i = 0
-    row = searchTableData(6, Cells(Rows.Count, 2).End(xlUp).row, RegisteredCategories, 2)
+    row = searchTableData(6, finRange, RegisteredCategories, 2)
 
     '探索結果
-    If row - 1 = Cells(Rows.Count, 2).End(xlUp).row Then
+    If row - 1 = finRange Then
          '項目が存在しない場合
         ActiveSheet.Rows(row - 1).Insert '行の追加
         ActiveSheet.Cells(row - 1, 2) = RegisteredCategories '項目の設定
@@ -147,6 +150,7 @@ Private Sub writeSheets()
         .TintAndShade = 0
         .Weight = xlThin
     End With
+     Call addComboBox
 
 End Sub
 
@@ -190,3 +194,20 @@ Private Function isNullCheck() As Boolean
     
 End Function
 
+Private Function setFinRange()
+     finRange = Cells(Rows.Count, 2).End(xlUp).row
+End Function
+
+Private Function addComboBox()
+    Call setFinRange
+    RegisteredCategoriesBox.Clear
+    For i = 6 To finRange - 1
+        If Not ActiveSheet.Cells(i, 2).Value = "" Then
+            RegisteredCategoriesBox.AddItem ActiveSheet.Cells(i, 2).Value
+        End If
+    Next i
+End Function
+Private Sub UserForm_Initialize()
+    Dim i As Integer: i = 0
+    Call addComboBox
+End Sub
