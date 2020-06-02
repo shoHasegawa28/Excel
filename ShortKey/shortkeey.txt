@@ -1,0 +1,192 @@
+Dim RegisteredCategories As String
+Dim NewCategories As String
+Dim LeaderKey As String
+Dim SubKey As String
+Dim SubKey2 As String
+Dim Content As String
+
+Private Sub Insert_Click()
+    Call setInputData
+    Call writeSheets
+    
+End Sub
+
+Private Sub setInputData()
+    RegisteredCategories = RegisteredCategoriesBox.Text
+    NewCategories = NewCategoriesText.Value
+    LeaderKey = LeaderKeyBox.Text
+    SubKey = SubKeyText.Text
+    SubKey2 = SubKey2Text.Text
+    Content = ContentText.Text
+End Sub
+
+Private Sub writeSheets()
+    Dim categoriesRange As range
+    Dim keysPairRange As range
+    Dim contentRange As range
+    
+    '入力値のnullチェック
+    If Not isNullCheck Then
+        Exit Sub
+    End If
+    
+    '項目探索
+    Dim row As Integer: i = 0
+    row = searchTableData(6, Cells(Rows.Count, 2).End(xlUp).row, RegisteredCategories, 2)
+
+    '探索結果
+    If row - 1 = Cells(Rows.Count, 2).End(xlUp).row Then
+         '項目が存在しない場合
+        ActiveSheet.Rows(row - 1).Insert '行の追加
+        ActiveSheet.Cells(row - 1, 2) = RegisteredCategories '項目の設定
+        row = row - 1 '挿入した際の行を保持
+    End If
+    
+    '登録のキー結合
+    Dim inputkey As String: inputkey = LeaderKey
+    
+    
+      'サイドとなるキーが入力されているかどうか
+    If Not SubKey = "" Then
+        inputkey = inputkey + " + " + SubKey
+    End If
+    
+    If Not SubKey2 = "" Then
+        inputkey = inputkey + " + " + SubKey2
+    End If
+    
+    'キーの探索
+    Dim keyFinRange As Integer: keyFinRange = Cells(row, 2).End(xlDown).row
+    row = searchTableData(row + 1, keyFinRange - 1, inputkey, 3)
+    
+    If Not row = keyFinRange Then
+        MsgBox ("すでにキーが登録されています")
+        Exit Sub
+    End If
+    ActiveSheet.Rows(row).Insert
+    
+    Dim setDataRange As range
+    Set setDataRange = ActiveSheet.Cells(row, 3)
+    setDataRange.Value = inputkey
+    setDataRange.Offset(, 1).Value = Content
+    
+    'ここから下はフォーマットの設定
+    row = Cells(Rows.Count, 2).End(xlUp).row
+    
+    Dim tableRange As String
+    tableRange = "B6:" & "D" & row - 1
+    range(tableRange).Select
+    With Selection.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlInsideHorizontal)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    
+    range("B5:D5,B5:B" & row - 1 & ",C5:C" & row - 1 & ",D5:D" & row - 1).Select
+    range("D5").Activate
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    With Selection.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+
+End Sub
+
+Private Function searchTableData(ByVal begin As Integer, ByVal fin As Integer, ByVal target As String, ByVal colom As Integer) As Integer
+    Dim row As Integer: row = 0
+    
+    For row = begin To fin
+        Dim tmp As String: tmp = ActiveSheet.Cells(row, colom).Value
+        If ActiveSheet.Cells(row, colom).Value = target Then
+            searchTableData = row
+            Exit For
+        End If
+    Next row
+    
+    searchTableData = row
+End Function
+
+Private Function isNullCheck() As Boolean
+   Dim flg As Boolean: flg = True
+   
+    '項目にどちらか値が入力されているかどうか
+    If RegisteredCategories = "" And NewCategories = "" Then
+        MsgBox "登録済みもしくは新規に入力してください"
+        flg = False
+    End If
+    
+    'リーダとなるキーが入力されているかどうか
+    If LeaderKey = "" Then
+        MsgBox "リーダーキーを入力してください"
+        flg = False
+    End If
+    
+     '機能の内容が入力されているかどうか
+    If Content = "" Then
+        MsgBox "内容を入力してください"
+        flg = False
+    End If
+    
+    '検索結果を結果を戻す
+    isNullCheck = flg
+    
+End Function
+
