@@ -1,0 +1,6 @@
+PrerequisitesTxt 前提条件
+TestCaseTxt　テストケース
+TestActionTxt　動作内容
+ReplaceTarget　置き換え文字
+wordTxt　キーワード
+RegisterSubmit　確定ボタン
