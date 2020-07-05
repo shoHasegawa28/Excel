@@ -1,0 +1,14 @@
+Private Sub CommandButton1_Click()
+ Dim word As Variant
+ 
+ word = Split(wordTxt.Text, ",")
+  
+ Dim i As Integer
+ For i = 0 To UBound(word)
+    word(i) = Replace(templeTxt.Text, ReplaceTarget.Text, word(i), 1, 1)
+    ResultBox.Text = ResultBox.Text & vbCrLf & word(i)
+ Next i
+ 
+End Sub
+
+

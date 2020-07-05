@@ -1,0 +1,284 @@
+
+'一つ辺りのCELLの横幅
+Dim CELL_WIDTH As Integer
+
+'一つ辺りの結合したCELLの縦幅
+Dim CELL_HEIGHT As Integer
+
+'カラムの数
+Dim MAX_COLUM_NUM As Integer
+
+'テーブルが開始するX座標
+Dim TABLE_START_X As Integer
+
+'テーブルが開始するY座標
+Dim TABLE_START_Y As Integer
+
+'対象のSheet
+Dim Sheet As Sheet2
+
+'キーワードの数
+Dim keywordNum As Integer
+
+
+'初期化
+Private Sub UserForm_Initialize()
+    Set Sheet = Sheets("Design")
+    CELL_WIDTH = 6
+    CELL_HEIGHT = 4
+    MAX_COLUM_NUM = 6
+    TABLE_START_X = 2
+    TABLE_START_Y = 7
+End Sub
+
+'ボタンクリック処理
+Private Sub RegisterSubmit_Click()
+
+    If Not ReplaceTarget.text = "" And Not wordTxt.text = "" Then
+        AddMultiRecord
+    Else
+        AddOneRecord
+    End If
+    
+    AllocateID
+
+End Sub
+'キーワードと置換文字列が設定されている場合の挿入処理
+Function AddMultiRecord()
+
+    Dim rowidx As Integer: rowidx = SearchBlockStart
+    Dim preIdx As Integer: preIdx = PrerequisitesSearch
+    Dim TestCaseList As Variant: TestCaseList = ReplaceKeyWord(TestCaseTxt.text)
+    Dim TestActionList As Variant: TestActionList = ReplaceKeyWord(TestActionTxt.text)
+         
+     Dim i As Integer
+    '入力された前提条件が存在しない場合
+    If Not PrerequisitesTxt = "" And preIdx = -1 Then
+         rowidx = GetEndRowIdx
+         CreateAbstract (rowidx)
+         
+         For i = 0 To keywordNum
+            rowidx = rowidx + CELL_HEIGHT
+            CreateTestCase (rowidx)
+            SetTestCase rowidx, TestCaseList(i)
+            SetAction rowidx, TestActionList(i)
+            SetTestDay rowidx
+            SetTestAnser rowidx
+         Next i
+         
+    '入力された前提条件が存在する場合
+    ElseIf Not preIdx = -1 Then
+         rowidx = SearchBlockEnd(preIdx + CELL_HEIGHT)
+         
+         For i = 0 To keywordNum
+            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+            CreateTestCase (rowidx)
+            SetTestCase rowidx, TestCaseList(i)
+            SetAction rowidx, TestActionList(i)
+            SetTestDay rowidx
+            SetTestAnser rowidx
+            rowidx = rowidx + CELL_HEIGHT
+         Next i
+         
+    '前提条件が入力されていない場合
+    ElseIf PrerequisitesTxt = "" Then
+          For i = 0 To keywordNum
+            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+            CreateTestCase (rowidx)
+            SetTestCase rowidx, TestCaseList(i)
+            SetAction rowidx, TestActionList(i)
+            SetTestDay rowidx
+            SetTestDay rowidx
+            SetTestAnser rowidx
+            rowidx = rowidx + CELL_HEIGHT
+         Next i
+    End If
+    
+End Function
+
+
+'ベース文字列の中の置換対象にキーワードを置換する
+Function ReplaceKeyWord(ByVal replacetext As String) As Variant
+        Dim word As Variant
+         word = Split(wordTxt.text, ",")
+         keywordNum = UBound(word)
+  
+         Dim i As Integer
+         For i = 0 To keywordNum
+             word(i) = Replace(replacetext, ReplaceTarget.text, word(i))
+         Next i
+         
+         ReplaceKeyWord = word
+End Function
+
+'キーワード未設定時
+Function AddOneRecord()
+    Dim rowidx As Integer: rowidx = SearchBlockStart
+    Dim preIdx As Integer: preIdx = PrerequisitesSearch
+    
+    '入力された前提条件が存在しない場合
+    If Not PrerequisitesTxt = "" And preIdx = -1 Then
+         rowidx = GetEndRowIdx
+         CreateAbstract (rowidx)
+         rowidx = rowidx + CELL_HEIGHT
+         CreateTestCase (rowidx)
+         SetTestCase rowidx, TestCaseTxt.text
+         SetAction rowidx, TestActionTxt.text
+         SetTestDay rowidx
+         SetTestAnser rowidx
+         
+    '入力された前提条件が存在する場合
+    ElseIf Not preIdx = -1 Then
+         rowidx = SearchBlockEnd(preIdx + CELL_HEIGHT)
+         Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+         Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+         CreateTestCase (rowidx)
+         SetTestCase rowidx, TestCaseTxt.text
+         SetAction rowidx, TestActionTxt.text
+         SetTestDay rowidx
+         SetTestAnser rowidx
+         
+    '前提条件が入力されたいない場合
+    ElseIf PrerequisitesTxt = "" Then
+         Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+         Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+         CreateTestCase (rowidx)
+         SetTestCase rowidx, TestCaseTxt.text
+         SetAction rowidx, TestActionTxt.text
+         SetTestDay rowidx
+         SetTestAnser rowidx
+    End If
+End Function
+
+'nullチェック
+Function isCheck() As Boolean
+
+If TestCaseTxt.Value = "" Then
+    isCheck = True
+     Exit Function
+End If
+
+If TestActionTxt.Value = "" Then
+    isCheck = True
+     Exit Function
+End If
+
+
+isCheck = False
+End Function
+
+'前提条件のブロックの最終行を取得する
+Function SearchBlockEnd(ByVal idx As Integer) As Integer
+    Dim i As Integer: i = idx
+    Dim count As Integer: count = 1
+     Do While Not Sheet.Cells(i, TABLE_START_X).MergeArea(1, 1).Interior.Color = RGB(191, 191, 191) And Sheet.Cells(i, TABLE_START_X).MergeCells
+        i = i + CELL_HEIGHT
+    Loop
+    SearchBlockEnd = i
+End Function
+
+'前提条件が最初に現れるブロックの行を習得する
+Function SearchBlockStart() As Integer
+    Dim i As Integer: i = TABLE_START_Y
+    Dim count As Integer: count = 1
+     Do While Sheet.Cells(i, TABLE_START_X).MergeCells
+        If Sheet.Cells(i, TABLE_START_X).MergeArea(1, 1).Interior.Color = RGB(191, 191, 191) Then
+             SearchBlockStart = i
+            Exit Function
+         End If
+        i = i + CELL_HEIGHT
+    Loop
+    SearchBlockStart = i
+End Function
+
+'引数で指定したカラム番号に対応したセル番号を取得する
+Function SearchColomnIdx(ByVal colomidx As Integer) As Integer
+   Dim j As Integer: j = TABLE_START_X
+   Dim count As Integer: count = 1
+    Do While Sheet.Cells(TABLE_START_Y, j).MergeCells
+        If colomidx = count Then
+            SearchColomnIdx = j
+            Exit Function
+        End If
+        j = j + CELL_WIDTH
+        count = count + 1
+    Loop
+    SearchColomnIdx = -1
+End Function
+
+'テストケースに値を設定する
+Function SetTestCase(ByVal y As Integer, ByVal text As String)
+    Sheet.Cells(y, SearchColomnIdx(2)).Value = text
+End Function
+
+'実行結果に値を設定する
+Function SetAction(ByVal y As Integer, ByVal text As String)
+    Sheet.Cells(y, SearchColomnIdx(3)).Value = text
+End Function
+
+'テスト日を入力する
+Function SetTestDay(ByVal y As Integer)
+    Sheet.Cells(y, SearchColomnIdx(4)).Value = Date
+End Function
+
+'テスト結果に結果リストを設定するする
+Function SetTestAnser(ByVal y As Integer)
+     With Sheet.Cells(y, SearchColomnIdx(5)).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
+        xlBetween, Formula1:="OK,NG,NG→OK"
+    End With
+End Function
+
+'最終行の番号を取得する
+Function GetEndRowIdx() As Integer
+    Dim i As Integer: i = TABLE_START_Y
+    Do While Sheet.Cells(i, TABLE_START_X).MergeCells
+        i = i + CELL_HEIGHT
+    Loop
+    GetEndRowIdx = i
+End Function
+
+'前提条件が存在するy座標を取得する
+Function PrerequisitesSearch() As Integer
+   Dim i As Integer: i = TABLE_START_Y
+    Do While Sheet.Cells(i, TABLE_START_X).MergeArea(1, 1).MergeCells
+        If Sheet.Cells(i, TABLE_START_X).MergeArea(1, 1).Value = PrerequisitesTxt.Value Then
+            PrerequisitesSearch = i
+            Exit Function
+        End If
+        i = i + CELL_HEIGHT
+    Loop
+    PrerequisitesSearch = -1
+End Function
+
+'テストケース入力欄
+Function CreateTestCase(ByVal i As Integer)
+    Dim j As Integer
+    For j = 0 To MAX_COLUM_NUM - 1
+        Sheet.Range(Sheet.Cells(i, TABLE_START_X + (j * CELL_WIDTH)), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + (j * CELL_WIDTH))).Merge
+    Next j
+End Function
+
+'前提条件
+Function CreateAbstract(ByVal i As Integer)
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Merge
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Interior.Color = RGB(191, 191, 191)
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Value = PrerequisitesTxt.Value
+End Function
+
+'ID振り直し
+Function AllocateID()
+    i = TABLE_START_Y + CELL_HEIGHT
+    Dim count As Integer: count = 1
+    Do While Sheet.Cells(i, TABLE_START_X).MergeCells
+        If Not Sheet.Cells(i, TABLE_START_X).Interior.Color = RGB(191, 191, 191) Then
+             Sheet.Cells(i, TABLE_START_X).Value = count
+             count = count + 1
+        End If
+        i = i + CELL_HEIGHT
+    Loop
+End Function
+
