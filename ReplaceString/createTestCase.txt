@@ -8,6 +8,9 @@ Dim CELL_HEIGHT As Integer
 'カラムの数
 Dim MAX_COLUM_NUM As Integer
 
+'カラムごとの横幅のセル数
+Dim Colomn_Size() As Integer
+
 'テーブルが開始するX座標
 Dim TABLE_START_X As Integer
 
@@ -23,12 +26,35 @@ Dim keywordNum As Integer
 
 '初期化
 Private Sub UserForm_Initialize()
+    'シートを設定する
     Set Sheet = Sheets("Design")
-    CELL_WIDTH = 6
-    CELL_HEIGHT = 4
+   
+    'セルの高さを設定
+    CELL_HEIGHT = 1
+    
+    '最大カラム数
     MAX_COLUM_NUM = 6
+    
+    'テーブルのx座標を設定する
     TABLE_START_X = 2
+    
+    'テーブルのy座標を設定する
     TABLE_START_Y = 7
+    
+    'カラムの数に対応した横幅を宣言する
+    ReDim Colomn_Size(0 To MAX_COLUM_NUM) As Integer
+    Colomn_Size(0) = 6
+    Colomn_Size(1) = 6
+    Colomn_Size(2) = 5
+    Colomn_Size(3) = 7
+    Colomn_Size(4) = 8
+    Colomn_Size(5) = 9
+    
+    'セルの横幅を定義する
+    Dim i As Integer
+    For i = 0 To UBound(Colomn_Size)
+         CELL_WIDTH = CELL_WIDTH + Colomn_Size(i)
+    Next i
 End Sub
 
 'ボタンクリック処理
@@ -196,16 +222,17 @@ End Function
 '引数で指定したカラム番号に対応したセル番号を取得する
 Function SearchColomnIdx(ByVal colomidx As Integer) As Integer
    Dim j As Integer: j = TABLE_START_X
-   Dim count As Integer: count = 1
-    Do While Sheet.Cells(TABLE_START_Y, j).MergeCells
-        If colomidx = count Then
-            SearchColomnIdx = j
-            Exit Function
-        End If
-        j = j + CELL_WIDTH
-        count = count + 1
-    Loop
-    SearchColomnIdx = -1
+   Dim width As Integer: width = TABLE_START_X
+   For j = 0 To UBound(Colomn_Size)
+    If colomidx - 1 = j Then
+        SearchColomnIdx = width
+        Exit Function
+    End If
+    width = width + Colomn_Size(j)
+    
+   Next j
+  
+   SearchColomnIdx = -1
 End Function
 
 'テストケースに値を設定する
@@ -257,16 +284,18 @@ End Function
 'テストケース入力欄
 Function CreateTestCase(ByVal i As Integer)
     Dim j As Integer
+    Dim z As Integer: z = TABLE_START_X
     For j = 0 To MAX_COLUM_NUM - 1
-        Sheet.Range(Sheet.Cells(i, TABLE_START_X + (j * CELL_WIDTH)), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + (j * CELL_WIDTH))).Merge
+        Sheet.Range(Sheet.Cells(i, z), Sheet.Cells(i, z + Colomn_Size(j) - 1)).Merge
+        z = z + Colomn_Size(j)
     Next j
 End Function
 
 '前提条件
 Function CreateAbstract(ByVal i As Integer)
-    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Merge
-    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Interior.Color = RGB(191, 191, 191)
-    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i + CELL_HEIGHT - 1, (TABLE_START_X + CELL_WIDTH - 1) + MAX_COLUM_NUM * (CELL_WIDTH - 1))).Value = PrerequisitesTxt.Value
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i, CELL_WIDTH + 1)).Merge
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i, CELL_WIDTH + 1)).Interior.Color = RGB(191, 191, 191)
+    Sheet.Range(Sheet.Cells(i, TABLE_START_X), Sheet.Cells(i, CELL_WIDTH + 1)).Value = PrerequisitesTxt.Value
 End Function
 
 'ID振り直し
