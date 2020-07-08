@@ -23,6 +23,8 @@ Dim Sheet As Sheet2
 'キーワードの数
 Dim keywordNum As Integer
 
+Dim replaceNum As Integer
+
 
 '初期化
 Private Sub UserForm_Initialize()
@@ -69,24 +71,89 @@ Private Sub RegisterSubmit_Click()
     AllocateID
 
 End Sub
+''キーワードと置換文字列が設定されている場合の挿入処理
+'Function AddMultiRecord()
+'
+'    Dim rowidx As Integer: rowidx = SearchBlockStart
+'    Dim preIdx As Integer: preIdx = PrerequisitesSearch
+'    Dim TestCaseList As Variant: TestCaseList = ReplaceKeyWord(TestCaseTxt.text)
+'    Dim TestActionList As Variant: TestActionList = ReplaceKeyWord(TestActionTxt.text)
+'
+'     Dim i As Integer
+'    '入力された前提条件が存在しない場合
+'    If Not PrerequisitesTxt = "" And preIdx = -1 Then
+'         rowidx = GetEndRowIdx
+'         CreateAbstract (rowidx)
+'
+'         For i = 0 To keywordNum
+'            rowidx = rowidx + CELL_HEIGHT
+'            CreateTestCase (rowidx)
+'            SetTestCase rowidx, TestCaseList(i)
+'            SetAction rowidx, TestActionList(i)
+'            SetTestDay rowidx
+'            SetTestAnser rowidx
+'         Next i
+'
+'    '入力された前提条件が存在する場合
+'    ElseIf Not preIdx = -1 Then
+'         rowidx = SearchBlockEnd(preIdx + CELL_HEIGHT)
+'
+'         For i = 0 To keywordNum
+'            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+'            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+'            CreateTestCase (rowidx)
+'            SetTestCase rowidx, TestCaseList(i)
+'            SetAction rowidx, TestActionList(i)
+'            SetTestDay rowidx
+'            SetTestAnser rowidx
+'            rowidx = rowidx + CELL_HEIGHT
+'         Next i
+'
+'    '前提条件が入力されていない場合
+'    ElseIf PrerequisitesTxt = "" Then
+'          For i = 0 To keywordNum
+'            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
+'            Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
+'            CreateTestCase (rowidx)
+'            SetTestCase rowidx, TestCaseList(i)
+'            SetAction rowidx, TestActionList(i)
+'            SetTestDay rowidx
+'            SetTestDay rowidx
+'            SetTestAnser rowidx
+'            rowidx = rowidx + CELL_HEIGHT
+'         Next i
+'    End If
+'
+'End Function
 'キーワードと置換文字列が設定されている場合の挿入処理
 Function AddMultiRecord()
 
     Dim rowidx As Integer: rowidx = SearchBlockStart
     Dim preIdx As Integer: preIdx = PrerequisitesSearch
-    Dim TestCaseList As Variant: TestCaseList = ReplaceKeyWord(TestCaseTxt.text)
-    Dim TestActionList As Variant: TestActionList = ReplaceKeyWord(TestActionTxt.text)
-         
-     Dim i As Integer
+   
+    Dim i As Integer
+     
+    If Not isCheckReplaceKey() Then
+        MsgBox ("置換対象の数をそろえてください")
+        Exit Function
+    End If
+     Dim TestCaseList As Variant: TestCaseList = ReplaceKeywords(TestCaseTxt.text)
+    Dim TestActionList() As String: TestActionList = ReplaceKeywords(TestActionTxt.text)
+    
     '入力された前提条件が存在しない場合
     If Not PrerequisitesTxt = "" And preIdx = -1 Then
          rowidx = GetEndRowIdx
          CreateAbstract (rowidx)
          
-         For i = 0 To keywordNum
+         For i = 0 To UBound(TestActionList)
             rowidx = rowidx + CELL_HEIGHT
             CreateTestCase (rowidx)
-            SetTestCase rowidx, TestCaseList(i)
+            If i < UBound(TestCaseList) Then
+             SetTestCase rowidx, TestCaseList(i)
+            End If
+            If i < UBound(TestActionList) Then
+             SetTestCase rowidx, TestCaseList(i)
+            End If
             SetAction rowidx, TestActionList(i)
             SetTestDay rowidx
             SetTestAnser rowidx
@@ -96,7 +163,7 @@ Function AddMultiRecord()
     ElseIf Not preIdx = -1 Then
          rowidx = SearchBlockEnd(preIdx + CELL_HEIGHT)
          
-         For i = 0 To keywordNum
+         For i = 0 To UBound(TestActionList)
             Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
             Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
             CreateTestCase (rowidx)
@@ -109,7 +176,7 @@ Function AddMultiRecord()
          
     '前提条件が入力されていない場合
     ElseIf PrerequisitesTxt = "" Then
-          For i = 0 To keywordNum
+          For i = 0 To UBound(TestActionList)
             Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Insert Shift:=xlDown
             Sheet.Range(rowidx & ":" & (rowidx + CELL_HEIGHT - 1)).Clear
             CreateTestCase (rowidx)
@@ -124,6 +191,57 @@ Function AddMultiRecord()
     
 End Function
 
+'複数置換対象のキーワードを置換する
+Function ReplaceKeywords(ByVal replacetext As String) As String()
+    Dim row As Variant: row = Split(wordTxt.text, vbCrLf)
+    Dim wordList() As Variant
+    
+    Dim replaceList() As String
+    ReDim replaceList(0 To replaceNum) As String
+    
+    ReDim wordList(0 To UBound(row)) As Variant
+    Dim i As Integer
+
+    For i = 0 To UBound(row)
+        wordList(i) = Split(row(i), ",")
+           
+        temp = UBound(wordList(i))
+        If Not InStr(replacetext, wordList(i)(0)) = 0 Then
+            Dim j As Integer
+            For j = 1 To UBound(wordList(i))
+                If replaceList(j - 1) = "" Then
+                     replaceList(j - 1) = replacetext
+                End If
+                
+                replaceList(j - 1) = Replace(replaceList(j - 1), wordList(i)(0), wordList(i)(j))
+            Next j
+        End If
+    Next i
+    
+    ReplaceKeywords = replaceList
+End Function
+
+Function isCheckReplaceKey() As Boolean
+    Dim row As Variant: row = Split(wordTxt.text, vbCrLf)
+    Dim wordList() As Variant
+    ReDim wordList(0 To UBound(row)) As Variant
+    Dim i As Integer
+    
+    Dim temp As Integer: temp = 0
+     For i = 0 To UBound(row)
+        wordList(i) = Split(row(i), ",")
+        
+        If Not temp = 0 And Not temp = UBound(wordList(i)) Then
+            isCheckReplaceKey = False
+            Exit Function
+        End If
+        
+        temp = UBound(wordList(i))
+    Next i
+    
+    replaceNum = temp - 1
+isCheckReplaceKey = True
+End Function
 
 'ベース文字列の中の置換対象にキーワードを置換する
 Function ReplaceKeyWord(ByVal replacetext As String) As Variant
@@ -252,11 +370,11 @@ End Function
 
 'テスト結果に結果リストを設定するする
 Function SetTestAnser(ByVal y As Integer)
-     With Sheet.Cells(y, SearchColomnIdx(5)).Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
-        xlBetween, Formula1:="OK,NG,NG→OK"
-    End With
+'     With Sheet.Cells(y, SearchColomnIdx(5)).Validation
+'        .Delete
+'        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
+'        xlBetween, Formula1:="OK,NG,NG→OK"
+'    End With
 End Function
 
 '最終行の番号を取得する
